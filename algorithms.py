@@ -139,7 +139,7 @@ class Algorithm(ABC):
             return SkRandomForestAlgorithm()
         if name == 'cumlrf':
             return CumlRfAlgorithm()
-        if name == 'fil':
+        if name == 'fil-cpu':
             return FilAlgorithm()
         if name == 'fil-gpu':
             return FilGPUAlgorithm()
@@ -273,7 +273,7 @@ class LegacyFilAlgorithm(XgbGPUHistAlgorithm):
             self.model = fil().load_from_treelite_model(
                 treelite.Model.from_xgboost(self.model),
                 output_class=(data.learning_task != LearningTask.REGRESSION),
-                threads_per_tree=32
+                threads_per_tree=[1,32][data.learning_task != LearningTask.MULTICLASS_CLASSIFICATION]
             )
         return t.interval
 
