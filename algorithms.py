@@ -270,7 +270,7 @@ class LegacyFilAlgorithm(XgbGPUHistAlgorithm):
     def fit(self, data, args):
         with Timer() as t:
             super().fit(data, args)
-            self.model = fil.load_from_treelite_model(
+            self.model = fil().load_from_treelite_model(
                 treelite.Model.from_xgboost(self.model),
                 output_class=(data.learning_task != LearningTask.REGRESSION),
                 threads_per_tree=32
