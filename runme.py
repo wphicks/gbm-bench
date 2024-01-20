@@ -106,15 +106,18 @@ def benchmark(args, dataset_folder, dataset):
     results = {}
     # "all" runs all algorithms
     if args.algorithm == "all":
-        args.algorithm = "xgb-gpu,xgb-cpu,xgb-gpu-dask,lgbm-cpu,lgbm-gpu,cat-cpu,cat-gpu"
+        args.algorithm = "xgb-gpu,xgb-cpu,xgb-gpu-dask,lgbm-cpu,lgbm-gpu,cat-cpu,cat-gpu,fil,fil-gpu,fil-old"
     for alg in args.algorithm.split(","):
         print("Running '%s' ..." % alg)
         runner = algorithms.Algorithm.create(alg)
         with runner:
             train_time = runner.fit(data, args)
-            pred = runner.test(data)
+            with algorithms.Timer() as t:
+                pred = runner.test(data)
+            test_time = t.interval
             results[alg] = {
                 "train_time": train_time,
+                "test_time": test_time,
                 "accuracy": get_metrics(data, pred),
             }
 

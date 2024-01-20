@@ -81,6 +81,19 @@ try:
 except ImportError:
     cumlrf_r = None
 
+try:
+    from cuml.experimental.fil import ForestInference as filex
+    from cuml.common.device_selection import using_device_type
+    import treelite
+except ImportError:
+    filex = None
+
+try:
+    from cuml.fil import ForestInference as fil
+    import treelite
+except ImportError:
+    fil = None
+
 from datasets import LearningTask
 
 
@@ -126,6 +139,12 @@ class Algorithm(ABC):
             return SkRandomForestAlgorithm()
         if name == 'cumlrf':
             return CumlRfAlgorithm()
+        if name == 'fil':
+            return FilAlgorithm()
+        if name == 'fil-gpu':
+            return FilGPUAlgorithm()
+        if name == 'fil-old':
+            return LegacyFilAlgorithm()
         raise ValueError("Unknown algorithm: " + name)
 
     def __init__(self):
@@ -208,11 +227,59 @@ class XgbAlgorithm(Algorithm):
         del self.model
 
 
+class FilAlgorithm(XgbAlgorithm):
+    def fit(self, data, args):
+        with Timer() as t:
+            super().fit(data, args)
+            with using_device_type('cpu'):
+                self.model = filex.load_from_treelite(
+                    treelite.Model.from_xgboost(self.model),
+                    output_class=(data.learning_task != LearningTask.REGRESSION)
+                )
+                self.model.optimize(batch_size=data.X_test.shape[0])
+        return t.interval
+
+    def test(self, data):
+        with using_device_type('cpu'):
+            return self.model.predict(data)
+
+
 class XgbGPUHistAlgorithm(XgbAlgorithm):
     def configure(self, data, args):
         params = super(XgbGPUHistAlgorithm, self).configure(data, args)
         params.update({"tree_method": "gpu_hist", "gpu_id": 0})
         return params
+
+
+class FilGPUAlgorithm(XgbGPUHistAlgorithm):
+    def fit(self, data, args):
+        with Timer() as t:
+            super().fit(data, args)
+            self.model = filex.load_from_treelite(
+                treelite.Model.from_xgboost(self.model),
+                output_class=(data.learning_task != LearningTask.REGRESSION)
+            )
+            self.model.optimize(batch_size=data.X_test.shape[0])
+        return t.interval
+
+    def test(self, data):
+        return self.model.predict(data)
+
+
+class LegacyFilAlgorithm(XgbGPUHistAlgorithm):
+    def fit(self, data, args):
+        with Timer() as t:
+            super().fit(data, args)
+            self.model = fil.load_from_treelite_model(
+                treelite.Model.from_xgboost(self.model),
+                output_class=(data.learning_task != LearningTask.REGRESSION),
+                threads_per_tree=32
+            )
+        return t.interval
+
+    def test(self, data):
+        return self.model.predict(data)
+
 
 class SkRandomForestAlgorithm(Algorithm):
     def configure(self, data, args):
