@@ -232,7 +232,7 @@ class FilAlgorithm(XgbAlgorithm):
         with Timer() as t:
             super().fit(data, args)
             with using_device_type('cpu'):
-                self.model = filex.load_from_treelite(
+                self.model = filex.load_from_treelite_model(
                     treelite.Model.from_xgboost(self.model),
                     output_class=(data.learning_task != LearningTask.REGRESSION)
                 )
@@ -255,7 +255,7 @@ class FilGPUAlgorithm(XgbGPUHistAlgorithm):
     def fit(self, data, args):
         with Timer() as t:
             super().fit(data, args)
-            self.model = filex.load_from_treelite(
+            self.model = filex.load_from_treelite_model(
                 treelite.Model.from_xgboost(self.model),
                 output_class=(data.learning_task != LearningTask.REGRESSION)
             )
