@@ -241,7 +241,7 @@ class FilAlgorithm(XgbAlgorithm):
 
     def test(self, data):
         with using_device_type('cpu'):
-            return self.model.predict(data)
+            return self.model.predict(data.X_test)
 
 
 class XgbGPUHistAlgorithm(XgbAlgorithm):
@@ -263,7 +263,7 @@ class FilGPUAlgorithm(XgbGPUHistAlgorithm):
         return t.interval
 
     def test(self, data):
-        return self.model.predict(data)
+        return self.model.predict(data.X_test)
 
 
 class LegacyFilAlgorithm(XgbGPUHistAlgorithm):
@@ -278,7 +278,7 @@ class LegacyFilAlgorithm(XgbGPUHistAlgorithm):
         return t.interval
 
     def test(self, data):
-        return self.model.predict(data)
+        return self.model.predict(data.X_test)
 
 
 class SkRandomForestAlgorithm(Algorithm):
